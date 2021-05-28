@@ -2,25 +2,23 @@ import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
 dotenv.config({ path: 'variables.env' })
 
-
-
 // Esto es provisorio, deberíamos utilizar el DAO correspondiente
-let users = {
-    john: {password: "passwordjohn"},
-    mary: {password: "passwordmary"},
-    seba: {password: "passwordseba"},
-    pepe: {password: "passwordpepe"}
-}
+// let users = {
+//     juan: {password: "passwordjuan"},
+//     maria: {password: "passwordmaria"},
+//     seba: {password: "passwordseba"},
+//     pepe: {password: "passwordpepe"}
+// }
 
-export const crearAutenticatron = () => {
+export const crearAutenticatron = (daoUsuarios) => {
     return {
         login: (req, res) => {
             let username = req.body.username
             let password = req.body.password
             
             // Esto también es provisorio
-            if (!username || !password || users[username].password !== password){
-                return res.status(401).send()
+            if (!username || !password || daoUsuarios.buscarPorUsername(username).password !== password){
+                return res.status(401).send('Error en la verificación de datos de usuario')
             }
     
             // Usamos el payload para almacenar información del usuario, nombre, rol, password, etc
@@ -38,8 +36,8 @@ export const crearAutenticatron = () => {
                 expiresIn: process.env.REFRESH_TOKEN_LIFE
             })
     
-            // Guardamos el refreshToken en el array de usuarios (debería ir a la BD)
-            users[username].refreshToken = refreshToken
+            // Guardamos el refreshToken en el array de usuarios (debería usar el DAO)
+            daoUsuarios.buscarPorUsername(username).refreshToken = refreshToken
     
             // Mandamos el accessToken al cliente dentro de una cookie
             res.cookie("jwt", accessToken, {secure: false, httpOnly: true})
@@ -61,15 +59,14 @@ export const crearAutenticatron = () => {
                 return res.status(401).send("error al verificar accessToken " + e.message)
             }
     
-            // Recuperamos el refreshToken del array de usuarios (debería usar la BD)
-            let refreshToken = users[payload.username].refreshToken
+            // Recuperamos el refreshToken del array de usuarios (debería usar el DAO)
+            let refreshToken = daoUsuarios.buscarPorUsername(payload.username).refreshToken
     
             // Verificamos el refreshToken
             try{
                 jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET)
             }
             catch(e){
-                console.log(users[payload.username])
                 return res.status(401).send("error al verificar el resfreshToken " + e.message)
             }
     
@@ -80,14 +77,14 @@ export const crearAutenticatron = () => {
             })
     
             res.cookie("jwt", newToken, {secure: false, httpOnly: true})
-            res.send()
+            res.send("Resfresh Token enviado con éxito")
         },
 
         verify: (req, res, next) => {
             let accessToken = req.cookies.jwt
             // Si no hay Token en las cookies, el request no es autorizado
             if (!accessToken){
-                return res.status(403).send()
+                return res.status(403).send("No se ha encontrado Token en las Cookies. Dónde está ese Token??")
             }
     
             let payload

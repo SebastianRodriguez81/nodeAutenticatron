@@ -2,10 +2,11 @@ import express from 'express'
 import cookieParser from 'cookie-parser'
 
 import { crearAutenticatron } from './autenticatron.js'
-
+import { crearDaoUsuarios } from './daoUsuarios.js'
 
 const app = express()
-const autenticatron = crearAutenticatron()
+const daoUsuarios = crearDaoUsuarios()
+const autenticatron = crearAutenticatron(daoUsuarios)
 const port = 4000
 
 
